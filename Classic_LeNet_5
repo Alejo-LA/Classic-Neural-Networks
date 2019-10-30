@@ -1,0 +1,77 @@
+### This is a classic LeNet 5 network. 
+
+import tensorflow as tf
+import numpy as np
+from tensorflow import keras
+
+# Download data from the net (mnist is the most common and was thought for this)
+# Take first the URL address and then get the file with numpy
+path_URL= "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz"
+path = tf.keras.utils.get_file('mnist.npz', path_URL)
+
+# Below we extraxt the data , wich turn out to be .npy files
+# using load and the path
+# This Data set has just training set and test set
+x_train = np.load(path)['x_train.npy']
+y_train = np.load(path)['y_train.npy']
+x_test = np.load(path)['x_test.npy']
+y_test = np.load(path)['y_test.npy']
+
+# Convert numeric to float
+# We convert the input to float , an able input for the network
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+
+# Convert lables to categorical data
+# These are going to be our posible classes in which we want to classify our data
+y_train = tf.keras.utils.to_categorical(y_train, num_classes=10)
+y_test = tf.keras.utils.to_categorical(y_test, num_classes=10)
+
+# Check dimensions
+# It is convenient to check the dimensions of the data before run it
+# Like this, we can either adapt it to the NN reshaping (as this classic case) 
+# either fix a diferent dimension input in the first laer of the NN
+print("\nShape of the input of the network: ")
+print(x_train.shape)
+print("\nNumber of training examples: ")
+print(x_train.shape[0])
+print("\nNumber of labels: ")
+print(y_train.shape[1])
+print("\n")
+
+# Reshaping the data to input_shape=(28,28,1)
+x_train = x_train.reshape(x_train.shape[0], 28,28,1)
+x_test = x_test.reshape(x_test.shape[0], 28,28,1)
+
+# Create a dataset obj for keras
+training_data = tf.data.Dataset.from_tensor_slices((x_train,y_train))
+test_data = tf.data.Dataset.from_tensor_slices((x_test,y_test))
+
+# Create the batches (power of 8) and shufle a bit the data 
+training_data = training_data.shuffle(100).batch(64)
+test_data = test_data.shuffle(100).batch(64)
+
+# Here we write the LeNet-5 model (it is a classic one eassy to find on the net)
+model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(filters=6,kernel_size=(5,5),strides=(1,1),activation='tanh',input_shape=(28,28,1),padding='same'),
+        tf.keras.layers.AveragePooling2D(pool_size=(2,2),strides=(1,1),padding='valid'),
+        tf.keras.layers.Conv2D(filters=16,kernel_size=(5,5),strides=(1,1),activation='tanh',padding='valid'),
+        tf.keras.layers.AveragePooling2D(pool_size=(2,2),strides=(2,2),padding='valid'),
+        tf.keras.layers.Conv2D(120,kernel_size=(5,5),strides=(1,1),activation='tanh',padding='valid'),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(units=84,activation='tanh'),
+        tf.keras.layers.Dense(units=10,activation='softmax')
+        ])
+        
+# We compile it and fit the loss, the optimizer 
+# and the way of measuring the accuracy (just it here)
+model.compile(loss='categorical_crossentropy', optimizer='SGD', metrics=['accuracy'] )
+
+# We train our NN
+model.fit(training_data)
+
+# We check with the test set how good is it doing our NN in a different data
+test_loss, test_accuracy = model.evaluate(test_data)
+
+# Print the results
+print('\nTest Loss {}, \nTest Accuracy {}'.format(test_loss, test_accuracy))
